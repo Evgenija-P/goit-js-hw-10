@@ -1,57 +1,61 @@
 import './css/styles.css';
-
-// import isObject from './isObject.js';
-// import root from './.internal/root.js';
-import Notiflix from 'notiflix';
+import { fetchCountries } from './fetchCountries.js';
+import { Notify } from 'notiflix/build/notiflix-notify-aio';
 var debounce = require('lodash.debounce');
 
+const input = document.querySelector(`#search-box`);
 const countryConteiner = document.querySelector(`.country-info`);
 const DEBOUNCE_DELAY = 300;
 
-import { fetchCountries } from './fetchCountries.js';
-const input = document.querySelector(`#search-box`);
 input.addEventListener(`input`, debounce(onSearch, DEBOUNCE_DELAY));
 
 function onSearch(event) {
-  const seachCountry = input.value;
+  const seachCountry = input.value.trim();
   console.log(seachCountry);
 
-  fetchCountries(input.value).then(listCountry).catch().finally();
+  fetchCountries(seachCountry)
+    .then(listCountry)
+    .catch(error => {
+      Notify.failure('Oops, there is no country with that name');
+    });
 }
 
 function listCountry(country) {
-  //   console.log(country);
-
-  if (country.length === 1) {
-    console.log(country[0].name.official);
-    const countrysListBild = country
-      .map(
-        count =>
-          `<div>
-        <img
-      src="${country[0].flags.svg}"
-      alt="${country[0].name.official}"/>  
-      <span>"${country[0].name.official}"</span></div>`
-      )
-      .join('');
-    countryConteiner.insertAdjacentHTML('afterbegin', countrysListBild);
-  } else if (country.length > 1 && country.length < 10) {
-    console.log(`amount 1 - 10`);
-  } else console.log(`amount != 1`);
+  listCleaner();
+  if (country.length > 10) {
+    Notify.info('Too many matches found. Please enter a more specific name.');
+  } else if (country.length > 1 && country.length <= 10) {
+    listCountryAll(country);
+  } else listCountryOne(country);
 }
 
-// countryConteiner.insertAdjacentHTML('afterbegin', countrysListBild);
-// console.log(countrysListBild);
-// const options {
-// name.official - полное имя страны
-// capital - столица
-// population - население
-// flags.svg - ссылка на изображение флага
-// languages - массив языков
-// }
+function listCountryOne(country) {
+  const language = Object.values(country[0].languages).join(', ');
+  const countrysListBildOne = country
+    .map(({ name: { official }, flags: { svg }, capital, population }) => {
+      return `<li class="list-country">
+    <img src="${svg}" alt="${official}" class="list-svg">
+          <h2> ${official}</h2></li>
+          <li class="list-country-one"><span class="title-country-one">Capital: </span>${capital} </li>
+<li class="list-country-one"><span class="title-country-one">Population: </span> ${population}</li>
+<li class="list-country-one"><span class="title-country-one">Languages: </span> ${language}</li>`;
+    })
+    .join('');
+  countryConteiner.insertAdjacentHTML('afterbegin', countrysListBildOne);
+}
 
-// function listCountry(countrys) {
-//   const bild = countryList(countrys);
-// }
-// function listCountryOne(countrys) {}
-// function listCountryLarge(countrys) {}
+function listCountryAll(country) {
+  const countrysListBild = country
+    .map(({ name: { official }, flags: { svg } }) => {
+      return `<li class="list-country">
+    <img src="${svg}" alt="${official}" class="list-svg">
+          <h3 class="list-title"> ${official}</h3>
+        </li>`;
+    })
+    .join('');
+  countryConteiner.insertAdjacentHTML('afterbegin', countrysListBild);
+}
+
+function listCleaner() {
+  countryConteiner.innerHTML = '';
+}
